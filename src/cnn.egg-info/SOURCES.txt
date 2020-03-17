@@ -1,8 +1,8 @@
 README.md
 setup.py
+src/cnn/cnn.c
 src/cnn/data.c
 src/cnn/dense.c
-src/cnn/test.c
 src/cnn.egg-info/PKG-INFO
 src/cnn.egg-info/SOURCES.txt
 src/cnn.egg-info/dependency_links.txt
