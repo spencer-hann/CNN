@@ -1,0 +1,1 @@
+https://www.python-course.eu/neural_network_mnist.php
