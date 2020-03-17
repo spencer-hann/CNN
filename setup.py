@@ -55,7 +55,7 @@ def setup():
         ext_modules=cythonize(
             [_extension_named('*')],
             compile_time_env={'TESTING':TESTING, 'LOGGING':LOGGING},
-            force=True,
+            #force=True,
         ),
         cmdclass=dict(build_ext=MyBuildExt),
         install_requires=['numpy'],
