@@ -1,10 +1,15 @@
+# cython: language_level=3
 import numpy as np
+
+from pathlib import Path
 
 
 def preprocess_data(
     filename, max_rows=None, shuffle=True, zero_mean=False,
 ):
+    print("loading from file...", end=' ')
     data = np.genfromtxt(filename, delimiter=',', max_rows=max_rows)
+    print("done.", flush=True)
 
     if shuffle:
         np.random.shuffle(data)
@@ -24,3 +29,8 @@ def preprocess_data(
 
     return data, targets
 
+def _load_data(str name, str csv):
+    datapath = Path.cwd() / "data"
+    p = datapath / (name + ".npy")
+    if p.exists():
+        return np.load(p)

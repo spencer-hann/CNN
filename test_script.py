@@ -8,21 +8,22 @@ from matplotlib import pyplot as plt
 
 
 training_examples, training_targets = \
-    preprocess_data("data/mnist_train.csv", max_rows=200)
+    preprocess_data("data/mnist_train.csv", max_rows=100)
 testing_examples, testing_targets = \
-    preprocess_data("data/mnist_test.csv", max_rows=10)
+    preprocess_data("data/mnist_test.csv", max_rows=1000)
 
 data = (training_examples, training_targets, testing_examples, testing_targets)
+train_set = (training_examples, training_targets)
 test_set = (testing_examples, testing_targets)
 
 
-layer0 = DenseSoftmaxLayer(28*28, 64)
-layer1 = DenseSoftmaxLayer(64,    32)
-layer2 = DenseSoftmaxLayer(32,    10)
-
-cnn = CNN((layer0, layer1, layer2))
-cnn = CNN((DenseSoftmaxLayer(28*28,10),))
-cnn.train_epochs(200, training_examples, training_targets)
+cnn = CNN((
+    ConvolutionalLayer(1,3,3, first_layer=True),
+    #ConvolutionalLayer(6,1,3),
+    DenseSoftmaxLayer(28*28*3, 10),
+))
+cnn.train_epochs(10, *train_set)
+cnn.test(*test_set)
 
 
 #print(f"train.shape: {training_examples.shape}")

@@ -1,6 +1,7 @@
 README.md
 setup.py
 src/cnn/cnn.c
+src/cnn/conv_w_lgrad_input.c
 src/cnn/data.c
 src/cnn/dense.c
 src/cnn.egg-info/PKG-INFO

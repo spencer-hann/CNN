@@ -27,17 +27,31 @@ cdef class Layer:
         raise NotImplementedError
 
 
+cdef size_t conv_layer_count = 0
+
 cdef class ConvolutionalLayer(Layer):
-    cdef:
-        readonly Py_ssize_t n_filters
-        readonly Py_ssize_t depth
-        readonly Py_ssize_t dim
-        readonly np.ndarray filters
+    cdef readonly:
+        Py_ssize_t n_filters
+        Py_ssize_t depth
+        Py_ssize_t dim
+        np.ndarray filters
+
+        np.ndarray last_input
+        size_t id
+        bint first_layer  # save some work by not finishing last gradient
 
 
     def __init__(
-        self, Py_ssize_t n_filters, Py_ssize_t depth, Py_ssize_t dim,
+        self,
+        Py_ssize_t depth,
+        Py_ssize_t n_filters,
+        Py_ssize_t dim,
+        bint first_layer = False,
     ):
+        global conv_layer_count
+        self.id = conv_layer_count
+        conv_layer_count += 1
+
         self.n_filters = n_filters
         self.depth = depth
         self.dim = dim
@@ -67,6 +81,14 @@ cdef class ConvolutionalLayer(Layer):
 
 
     def forward(self, np.ndarray image):
+        cdef np.ndarray out
+        #print(f"conv{self.id} forward input: {np_shape(image)}")
+        self.last_input = image
+        out = self.convolve(image, self.filters)
+        #print(f"conv{self.id} forward output: {np_shape(out)}")
+        return out
+
+    def convolve(self, np.ndarray image, np.ndarray filters):
         cdef np.ndarray out, m
         cdef Py_ssize_t xdim, ydim, i, j, p
 
@@ -79,18 +101,52 @@ cdef class ConvolutionalLayer(Layer):
         p = self.dim // 2  # padding
         image = self.pad(image)
 
-        for i in range(p, xdim):
-            for j in range(p, ydim):
-                m = self.filters * image[:, i-p:i+p+1, j-p:j+p+1]
+        for i in range(p, xdim + p):
+            for j in range(p, ydim + p):
+                m = filters * image[:, i-p:i+p+1, j-p:j+p+1]
                 out[:, i-p, j-p] = np.sum(m, axis=(1,2,3))
 
         return out
 
+    def backprop(self, np.ndarray loss_grad, double lr):
+        cdef np.ndarray grad_filters, img
+        cdef Py_ssize_t p, xdim, ydim
+
+        #print(f"conv{self.id} backward input: {np_shape(loss_grad)}")
+
+        grad_filters = np.zeros(np_shape(self.filters))
+        p = self.dim // 2
+        xdim = self.last_input.shape[1]
+        ydim = self.last_input.shape[2]
+
+        img = self.pad(self.last_input)
+
+        ## Loss gradient wrt filters
+
+        #print(np_shape(loss_grad), np_shape(img), flush=True)
+
+        for i in range(p, xdim - p - 1):
+            for j in range(p, ydim - p - 1):
+                for f in range(self.n_filters):
+                    assert j-p < loss_grad.shape[2], (j,p,ydim,np_shape(loss_grad))
+                    grad_filters[f] += \
+                        loss_grad[:, i-p, j-p] * img[:, i-p:i+p+1, j-p:j+p+1]
+
+        self.filters -= lr * grad_filters
+
+        if self.first_layer:
+            return None
+
+        ## Loss gradient wrt input
+        # grad of loss wrt filters * grad of filters wrt input
+        lgrad_input = self.convolve(self.last_input, grad_filters)
+        return lgrad_input
+
 
 cdef class MaxPoolingLayer(Layer):
-    cdef:
-        readonly Py_ssize_t dim
-
+    cdef readonly:
+        Py_ssize_t dim
+        np.ndarray last_input
 
     def __init__(self, Py_ssize_t dim):
         self.dim = dim
@@ -99,6 +155,8 @@ cdef class MaxPoolingLayer(Layer):
     def forward(self, np.ndarray image):
         cdef Py_ssize_t nchan, xdim, ydim, d, x, y, i, j
         cdef np.ndarray out
+
+        self.last_input = image
 
         nchan, xdim, ydim = img_shape(image)
 
@@ -114,6 +172,27 @@ cdef class MaxPoolingLayer(Layer):
                 out[:,x,y] = np.max(image[:, i:i+d, j:j+d], axis=(1,2))
 
         return out
+
+    #def backprop(self, np.ndarray loss_grad):
+    #    cdef Py_ssize_t nchan, xdim, ydim, d, x, y, i, j
+    #    cdef np.ndarray out
+
+    #    nchan, xdim, ydim = img_shape(image)
+
+    #    d = self.dim
+    #    newx = xdim // d
+    #    newy = ydim // d
+    #    out = np.empty((nchan, newx, newy))
+
+    #    for x in range(newx):
+    #        i = x * d
+    #        for y in range(newy):
+    #            j = y * d
+    #            for z in range(nchan):
+    #                if self.last_input[z,x,y] == self.out[z,x,y]:
+    #                    out[:,x,y] = np.max(image[:, i:i+d, j:j+d], axis=(1,2))
+
+    #    return out
 
 
 cdef class DenseSoftmaxLayer(Layer):
@@ -179,18 +258,6 @@ cdef class DenseSoftmaxLayer(Layer):
         ograd_biases = 1
         ograd_weights = self.last_image.flatten()
 
-        #print(
-        #    np.isnan(ograd_input).any(),
-        #    np.isnan(loss_grad).any(),
-        #    np.isnan(self.w).any(),
-        #    self.w.mean(),
-        #    self.w.min(),
-        #    self.w.max(),
-        #)
-        #if np.isnan(self.w).any():
-        #    import sys
-        #    sys.exit(1)
-
         # loss gradients wrt input, biases, weights
         lgrad_input = ograd_input @ loss_grad
         lgrad_biases = ograd_biases * loss_grad
@@ -222,28 +289,34 @@ cdef class CNN:
 
 
     def forward(self, np.ndarray image, Py_ssize_t label = -1):
+        return self._forward(image, label)
+
+    cdef tuple _forward(self, np.ndarray image, Py_ssize_t label):
         cdef np.ndarray out
+        cdef double loss, correct
 
         out = image
         for layer in self.layers:
             out = layer.forward(out)
         self.out = out
 
-        result = np.argmax(out)
         if label < 0:
-            return result, out
+            return out, -1, -1
 
-        correct = float(result == label)
+        correct = <double>(np.argmax(out) == label)
         loss = -np.log(out[label])
 
-        return result, out, correct, loss
+        return out, loss, correct
 
     def learn(
         self,
         np.ndarray image,
         int label,
     ):
-        res, out, correct, loss = self.forward(image, label)
+        cdef np.ndarray out
+        cdef double loss, correct
+
+        out, loss, correct = self._forward(image, label)
 
         # cross entropy gradient
         grad = np.zeros(10)
@@ -263,14 +336,36 @@ cdef class CNN:
 
         assert len(images) == len(labels)
         for i in tqdm(range(n)):
-            l, c = self.learn(images[i], labels[i])
+            img = images[i].reshape((28,28))[np.newaxis,...]
+            l, c = self.learn(img, labels[i])
             loss += l
             ncorrect += c
 
         return loss / n, ncorrect / n
 
-    def train_epochs(self, int n, np.ndarray images, np.ndarray labels):
+    def train_epochs(self, n, np.ndarray images, np.ndarray labels):
         for i in range(n):
             loss, accuracy = self.train(images, labels)
-            print(f"Epoch {i}: {loss:.2f} loss, {100*accuracy:.2f}% accurate")
+            print(f"Epoch {i}/{n}: {loss:.2f} loss, {100*accuracy:.2f}% accurate")
+
+    def test(self, np.ndarray images, np.ndarray labels, display = True):
+        cdef:
+            double l, loss = 0
+            double c, correct = 0
+            int n = len(images)
+            Py_ssize_t i
+
+        assert n == len(labels)
+        for i in tqdm(range(n)):
+            img = images[i].reshape((28,28))[np.newaxis,...]
+            _, l, c = self._forward(img, labels[i])
+            loss += l
+            correct += c
+
+        loss, correct = loss / n, correct / n
+        if display:
+            print(f"Test: {loss:.2f} loss, {100*correct:.2f}% accurate")
+        return loss, correct
+
+
 
