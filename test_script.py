@@ -23,8 +23,8 @@ print(f"learning rate: {lr}", flush=True)
 cnn = CNN(
     (
         ConvolutionalLayer(1,3,3, first_layer=True),
-        #ConvolutionalLayer(3,1,3),
-        DenseSoftmaxLayer(28*28*3, 10),
+        ConvolutionalLayer(3,1,3),
+        DenseSoftmaxLayer(28*28, 10),
     ),
     lr = 0.006
 )

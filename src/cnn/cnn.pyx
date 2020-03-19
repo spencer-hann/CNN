@@ -123,7 +123,7 @@ cdef class ConvolutionalLayer(Layer):
 
         ## Loss gradient wrt filters
 
-        if 0:
+        if 1:
             print(
                 np_shape(self.filters),
                 np_shape(grad_filters),
@@ -139,7 +139,7 @@ cdef class ConvolutionalLayer(Layer):
                     img[:, i-p:i+p+1, j-p:j+p+1]
 
                     grad_filters[f] += \
-                        loss_grad[:, i-p, j-p] * img[:, i-p:i+p+1, j-p:j+p+1]
+                        loss_grad[f, i-p, j-p] * img[:, i-p:i+p+1, j-p:j+p+1]
 
         self.filters -= lr * grad_filters
 
