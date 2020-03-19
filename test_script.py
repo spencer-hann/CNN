@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 
 training_examples, training_targets = \
-    preprocess_data("data/mnist_train.csv", max_rows=100)
+    preprocess_data("data/mnist_train.csv", max_rows=1000)
 testing_examples, testing_targets = \
     preprocess_data("data/mnist_test.csv", max_rows=1000)
 
@@ -17,11 +17,17 @@ train_set = (training_examples, training_targets)
 test_set = (testing_examples, testing_targets)
 
 
-cnn = CNN((
-    ConvolutionalLayer(1,3,3, first_layer=True),
-    #ConvolutionalLayer(6,1,3),
-    DenseSoftmaxLayer(28*28*3, 10),
-))
+lr = 0.005
+print(f"learning rate: {lr}", flush=True)
+
+cnn = CNN(
+    (
+        ConvolutionalLayer(1,3,3, first_layer=True),
+        #ConvolutionalLayer(3,1,3),
+        DenseSoftmaxLayer(28*28*3, 10),
+    ),
+    lr = 0.006
+)
 cnn.train_epochs(10, *train_set)
 cnn.test(*test_set)
 

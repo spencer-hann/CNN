@@ -327,9 +327,6 @@ cdef class CNN:
 
         out, loss, correct = self._forward(image, label)
 
-        if correct:
-            return loss, correct
-
         # cross entropy gradient
         grad = np.zeros(10)
         grad[label] = - 1 / out[label]
@@ -378,6 +375,7 @@ cdef class CNN:
         if display:
             print(f"Test: {loss:.2f} loss, {100*correct:.2f}% accurate")
         return loss, correct
+
 
 
 

@@ -123,21 +123,9 @@ cdef class ConvolutionalLayer(Layer):
 
         ## Loss gradient wrt filters
 
-        if 0:
-            print(
-                np_shape(self.filters),
-                np_shape(grad_filters),
-                np_shape(loss_grad),
-                np_shape(img))
-
         for i in range(p, xdim - p - 1):
             for j in range(p, ydim - p - 1):
                 for f in range(self.n_filters):
-                    grad_filters[f]
-                    #print(f, i-p, j-p, self.n_filters)
-                    loss_grad[f, i-p, j-p]
-                    img[:, i-p:i+p+1, j-p:j+p+1]
-
                     grad_filters[f] += \
                         loss_grad[:, i-p, j-p] * img[:, i-p:i+p+1, j-p:j+p+1]
 
@@ -245,7 +233,7 @@ cdef class DenseSoftmaxLayer(Layer):
 
     def backprop_softmax(self, np.ndarray loss_grad, lr=None):
         # only one non-zero element in cross entropy loss gradient
-        assert 0 <= np.count_nonzero(loss_grad) <= 1
+        #assert 0 <= np.count_nonzero(loss_grad) <= 1
 
         # exp of dense output prior to softmax
         exp_fc = np.exp(self.last_fc)
@@ -327,9 +315,6 @@ cdef class CNN:
 
         out, loss, correct = self._forward(image, label)
 
-        if correct:
-            return loss, correct
-
         # cross entropy gradient
         grad = np.zeros(10)
         grad[label] = - 1 / out[label]
@@ -378,6 +363,7 @@ cdef class CNN:
         if display:
             print(f"Test: {loss:.2f} loss, {100*correct:.2f}% accurate")
         return loss, correct
+
 
 
 
