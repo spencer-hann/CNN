@@ -3,6 +3,11 @@
 import numpy as np
 cimport numpy as np
 
+from tqdm import tqdm
+
+
+DEF DEF_LEARNING_RATE = 0.02
+
 
 cdef inline np_shape(np.ndarray a):
     return (<object>a).shape
@@ -43,7 +48,7 @@ cdef class ConvolutionalLayer(Layer):
         self.filters /= depth * dim**2  # normalize individual filters
 
 
-    def pad(self, np.ndarray image):
+    cdef np.ndarray pad(self, np.ndarray image):
         cdef Py_ssize_t p, i, j
         cdef np.ndarray out
 
@@ -119,7 +124,7 @@ cdef class DenseSoftmaxLayer(Layer):
         Py_ssize_t outsize
 
         np.ndarray last_image
-        np.ndarray last_out
+        np.ndarray last_fc  # last state of fully-connected layer output
 
 
     def __init__(self, insize, outsize=10):
@@ -130,51 +135,93 @@ cdef class DenseSoftmaxLayer(Layer):
         self.b = np.random.randn(outsize) / outsize
 
 
-    def forward(self, image):
+    def forward(self, np.ndarray image):
         self.last_image = image
         image = image.flatten()
 
         # fully-connected/matmul phase
-        out = image @ self.w
-        out += self.b
-        self.last_out = out
+        fc = np.dot(image, self.w)
+        #fc = image @ self.w
+        fc += self.b
+        self.last_fc = fc
 
         # softmax phase
-        result = np.exp(out)
+        result = np.exp(fc)
         result /= np.sum(result, axis=0)
 
         return result
 
-    def backprop(self, output_gradient):
-        # 
-        results = self.last_out
-        exp_res = np.exp(res)
-        out = exp_res / np.sum(exp_res)
+    def backprop(self, np.ndarray loss_grad, double lr):
+        gradient = self.backprop_softmax(loss_grad, lr)
+        return self.backprop_dense(gradient, lr)
 
+    def backprop_softmax(self, np.ndarray loss_grad, lr=None):
+        # only one non-zero element in cross entropy loss gradient
+        assert 0 <= np.count_nonzero(loss_grad) <= 1
+
+        # exp of dense output prior to softmax
+        exp_fc = np.exp(self.last_fc)
+        exp_fc_sm = exp_fc.sum()
+
+        # softmax gradient with respect to input from fc layer
+        c = loss_grad.argmax()  # class index
+        # true for all but grad_fc[c]
+        grad_fc = -exp_fc[c] * exp_fc / exp_fc_sm**2
+        # grad_fc[c] depends on exp_fc[c] differently
+        grad_fc[c] = exp_fc[c] * (exp_fc_sm - exp_fc[c]) / exp_fc_sm**2
+
+        # loss gradient wrt input layer
+        return loss_grad * grad_fc  # zeroed out except for sole contibutor
+
+    def backprop_dense(self, np.ndarray loss_grad, double lr):
+        # output gradients wrt input, biases, weights
+        ograd_input = self.w
+        ograd_biases = 1
+        ograd_weights = self.last_image.flatten()
+
+        #print(
+        #    np.isnan(ograd_input).any(),
+        #    np.isnan(loss_grad).any(),
+        #    np.isnan(self.w).any(),
+        #    self.w.mean(),
+        #    self.w.min(),
+        #    self.w.max(),
+        #)
+        #if np.isnan(self.w).any():
+        #    import sys
+        #    sys.exit(1)
+
+        # loss gradients wrt input, biases, weights
+        lgrad_input = ograd_input @ loss_grad
+        lgrad_biases = ograd_biases * loss_grad
+        #lgrad_weights = ograd_weights[np.newaxis].T @ loss_grad[np.newaxis]
+        lgrad_weights = ograd_weights[:,np.newaxis] @ loss_grad[np.newaxis]
+
+        # update layer
+        self.w += lr * lgrad_weights
+        self.b += lr * lgrad_biases
+        return lgrad_input.reshape(np_shape(self.last_image))
 
 
 cdef class CNN:
     cdef readonly:
-        list layers
+        np.ndarray layers
         np.ndarray out
-        dict classes
         int size
+        double lr
 
 
-    def __init__(self, layers, classes = (*range(10),)):
-        self.layers = layers
+    def __init__(
+        self,
+        layers,
+        double lr = DEF_LEARNING_RATE,
+    ):
+        self.layers = np.array(layers)
         self.size = len(layers)
-
-        if type(classes) != dict:
-            classes = {i:cls for i,cls in enumerate(classes)}
-
-        self.classes = classes
-        self.out = np.zeros(len(classes))
-
-        print(classes)
+        self.lr = lr
 
 
-    def forward(self, np.ndarray image, Py_ssize_t label):
+    def forward(self, np.ndarray image, Py_ssize_t label = -1):
         cdef np.ndarray out
 
         out = image
@@ -182,9 +229,48 @@ cdef class CNN:
             out = layer.forward(out)
         self.out = out
 
-        result = self.classes[np.argmax(out)]
+        result = np.argmax(out)
+        if label < 0:
+            return result, out
 
         correct = float(result == label)
-        cost = -np.log(out[label])
+        loss = -np.log(out[label])
 
-        return result, out, correct, cost
+        return result, out, correct, loss
+
+    def learn(
+        self,
+        np.ndarray image,
+        int label,
+    ):
+        res, out, correct, loss = self.forward(image, label)
+
+        # cross entropy gradient
+        grad = np.zeros(10)
+        grad[label] = - 1 / out[label]
+
+        for layer in self.layers[::-1]:
+            grad = layer.backprop(grad, self.lr)
+
+        return loss, correct
+
+    def train(self, np.ndarray images, np.ndarray labels):
+        cdef:
+            double l, loss = 0
+            double c, ncorrect = 0
+            int n = len(images)
+            Py_ssize_t i
+
+        assert len(images) == len(labels)
+        for i in tqdm(range(n)):
+            l, c = self.learn(images[i], labels[i])
+            loss += l
+            ncorrect += c
+
+        return loss / n, ncorrect / n
+
+    def train_epochs(self, int n, np.ndarray images, np.ndarray labels):
+        for i in range(n):
+            loss, accuracy = self.train(images, labels)
+            print(f"Epoch {i}: {loss:.2f} loss, {100*accuracy:.2f}% accurate")
+

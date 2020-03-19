@@ -6,74 +6,82 @@ from cnn.data import preprocess_data
 from matplotlib import pyplot as plt
 
 
-dc = "\n\t".join(dir(cnn))
-print(f"dir(cnn): {dc}")
 
 training_examples, training_targets = \
-    preprocess_data("data/mnist_train.csv", max_rows=100)
+    preprocess_data("data/mnist_train.csv", max_rows=200)
 testing_examples, testing_targets = \
-    preprocess_data("data/mnist_test.csv", max_rows=1000)
+    preprocess_data("data/mnist_test.csv", max_rows=10)
 
 data = (training_examples, training_targets, testing_examples, testing_targets)
 test_set = (testing_examples, testing_targets)
 
-print(f"train.shape: {training_examples.shape}")
-img = training_examples[0,1:]
-print(f"img.shape: {img.shape}")
-img = img.reshape((28,28))
-print(f"img.shape: {img.shape}")
 
-plt.imshow(img)
-plt.savefig(f"{training_targets[0]}.png")
-plt.cla()
+layer0 = DenseSoftmaxLayer(28*28, 64)
+layer1 = DenseSoftmaxLayer(64,    32)
+layer2 = DenseSoftmaxLayer(32,    10)
 
-img = img[np.newaxis, ...]
-print(f"img.shape: {img.shape}")
-
-shape1 = (2,1,3)
-shape2 = (3,2,9)
-print(f"shape1: {shape1}")
-print(f"shape2: {shape2}")
-conv1 = ConvolutionalLayer(*shape1)
-conv2 = ConvolutionalLayer(*shape2)
-
-out = conv1.forward(img)
-print(f"conv1 out: {out.shape}")
-out = conv2.forward(out)
-print(f"conv2 out: {out.shape}")
+cnn = CNN((layer0, layer1, layer2))
+cnn = CNN((DenseSoftmaxLayer(28*28,10),))
+cnn.train_epochs(200, training_examples, training_targets)
 
 
-pool = MaxPoolingLayer(2)
-out = pool.forward(out)
-print(f"pool2 out: {out.shape}")
-
-shape3 = (1,3,3)
-print(f"shape3: {shape3}")
-conv3 = ConvolutionalLayer(*shape3)
-
-plt.imshow(out[0])
-plt.savefig(f"after{training_targets[0]}.png")
-plt.cla()
-
-
-out = conv3.forward(out)
-print(f"conv3 out: {out.shape}")
-
-final = DenseSoftmaxLayer(14*14, 10)
-out = final.forward(out)
-print(f"final out: {out.shape}")
-print(out)
-
-layers = [conv1, conv2, pool, conv3, final]
-nn = CNN(layers)
-
-ncorrect = 0
-cost = 0
-for i, (img, label) in enumerate(zip(test_set[0], test_set[1])):
-    img = img[1:].reshape((28,28))[np.newaxis,...]
-    res,_,acc,loss = nn.forward(img, label)
-    ncorrect += acc
-    cost += loss
-    print(res,label,'*' if res == label else ' ', end='  ')
-    print(f"Average accuracy: {ncorrect/(i+1)}, avg. cost: {cost/(i+1)}")
+#print(f"train.shape: {training_examples.shape}")
+#img = training_examples[0]
+#print(f"img.shape: {img.shape}")
+#img = img.reshape((28,28))
+#print(f"img.shape: {img.shape}")
+#
+#plt.imshow(img)
+#plt.savefig(f"{training_targets[0]}.png")
+#plt.cla()
+#
+#img = img[np.newaxis, ...]
+#print(f"img.shape: {img.shape}")
+#
+#shape1 = (2,1,3)
+#shape2 = (3,2,9)
+#print(f"shape1: {shape1}")
+#print(f"shape2: {shape2}")
+#conv1 = ConvolutionalLayer(*shape1)
+#conv2 = ConvolutionalLayer(*shape2)
+#
+#out = conv1.forward(img)
+#print(f"conv1 out: {out.shape}")
+#out = conv2.forward(out)
+#print(f"conv2 out: {out.shape}")
+#
+#
+#pool = MaxPoolingLayer(2)
+#out = pool.forward(out)
+#print(f"pool2 out: {out.shape}")
+#
+#shape3 = (1,3,3)
+#print(f"shape3: {shape3}")
+#conv3 = ConvolutionalLayer(*shape3)
+#
+#plt.imshow(out[0])
+#plt.savefig(f"after{training_targets[0]}.png")
+#plt.cla()
+#
+#
+#out = conv3.forward(out)
+#print(f"conv3 out: {out.shape}")
+#
+#final = DenseSoftmaxLayer(14*14, 10)
+#out = final.forward(out)
+#print(f"final out: {out.shape}")
+#print(out)
+#
+#layers = [conv1, conv2, pool, conv3, final]
+#nn = CNN(layers)
+#
+#ncorrect = 0
+#cost = 0
+#for i, (img, label) in enumerate(zip(test_set[0], test_set[1])):
+#    img = img.reshape((28,28))[np.newaxis,...]
+#    res,_,acc,loss = nn.forward(img, label)
+#    ncorrect += acc
+#    cost += loss
+#    print(res,label,'*' if res == label else ' ', end='  ')
+#    print(f"Average accuracy: {ncorrect/(i+1)}, avg. cost: {cost/(i+1)}")
 

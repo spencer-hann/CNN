@@ -1045,6 +1045,15 @@ static PyObject* __Pyx_PyInt_SubtractObjC(PyObject *op1, PyObject *op2, long int
     (inplace ? PyNumber_InPlaceSubtract(op1, op2) : PyNumber_Subtract(op1, op2))
 #endif
 
+/* PyObjectSetAttrStr.proto */
+#if CYTHON_USE_TYPE_SLOTS
+#define __Pyx_PyObject_DelAttrStr(o,n) __Pyx_PyObject_SetAttrStr(o, n, NULL)
+static CYTHON_INLINE int __Pyx_PyObject_SetAttrStr(PyObject* obj, PyObject* attr_name, PyObject* value);
+#else
+#define __Pyx_PyObject_DelAttrStr(o,n)   PyObject_DelAttr(o,n)
+#define __Pyx_PyObject_SetAttrStr(o,n,v) PyObject_SetAttr(o,n,v)
+#endif
+
 /* Import.proto */
 static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level);
 
@@ -1152,6 +1161,7 @@ static const char __pyx_k_intc[] = "intc";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_name[] = "__name__";
 static const char __pyx_k_test[] = "__test__";
+static const char __pyx_k_flags[] = "flags";
 static const char __pyx_k_numpy[] = "numpy";
 static const char __pyx_k_astype[] = "astype";
 static const char __pyx_k_import[] = "__import__";
@@ -1162,18 +1172,22 @@ static const char __pyx_k_cnn_data[] = "cnn.data";
 static const char __pyx_k_filename[] = "filename";
 static const char __pyx_k_max_rows[] = "max_rows";
 static const char __pyx_k_delimiter[] = "delimiter";
+static const char __pyx_k_writeable[] = "writeable";
 static const char __pyx_k_zero_mean[] = "zero_mean";
 static const char __pyx_k_genfromtxt[] = "genfromtxt";
 static const char __pyx_k_preprocess_data[] = "preprocess_data";
 static const char __pyx_k_src_cnn_data_pyx[] = "src/cnn/data.pyx";
+static const char __pyx_k_ascontiguousarray[] = "ascontiguousarray";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
 static PyObject *__pyx_kp_s_;
+static PyObject *__pyx_n_s_ascontiguousarray;
 static PyObject *__pyx_n_s_astype;
 static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_cnn_data;
 static PyObject *__pyx_n_s_data;
 static PyObject *__pyx_n_s_delimiter;
 static PyObject *__pyx_n_s_filename;
+static PyObject *__pyx_n_s_flags;
 static PyObject *__pyx_n_s_genfromtxt;
 static PyObject *__pyx_n_s_import;
 static PyObject *__pyx_n_s_intc;
@@ -1188,6 +1202,7 @@ static PyObject *__pyx_n_s_shuffle;
 static PyObject *__pyx_kp_s_src_cnn_data_pyx;
 static PyObject *__pyx_n_s_targets;
 static PyObject *__pyx_n_s_test;
+static PyObject *__pyx_n_s_writeable;
 static PyObject *__pyx_n_s_zero_mean;
 static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_filename, PyObject *__pyx_v_max_rows, PyObject *__pyx_v_shuffle, PyObject *__pyx_v_zero_mean); /* proto */
 static PyObject *__pyx_int_0;
@@ -1195,9 +1210,11 @@ static PyObject *__pyx_int_1;
 static PyObject *__pyx_int_2;
 static PyObject *__pyx_int_255;
 static PyObject *__pyx_slice__2;
+static PyObject *__pyx_slice__4;
 static PyObject *__pyx_tuple__3;
-static PyObject *__pyx_tuple__4;
-static PyObject *__pyx_codeobj__5;
+static PyObject *__pyx_tuple__5;
+static PyObject *__pyx_tuple__6;
+static PyObject *__pyx_codeobj__7;
 /* Late includes */
 
 /* "cnn/data.pyx":4
@@ -1412,8 +1429,8 @@ static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__p
  *         np.random.shuffle(data)
  * 
  *     targets = data[:,0].astype(np.intc)             # <<<<<<<<<<<<<<
+ *     data = np.ascontiguousarray(data[:,1:])
  * 
- *     # black is 0, white is 1
  */
   __pyx_t_3 = __Pyx_PyObject_GetItem(__pyx_v_data, __pyx_tuple__3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
@@ -1444,53 +1461,86 @@ static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__p
   __pyx_v_targets = __pyx_t_4;
   __pyx_t_4 = 0;
 
-  /* "cnn/data.pyx":15
+  /* "cnn/data.pyx":13
+ * 
+ *     targets = data[:,0].astype(np.intc)
+ *     data = np.ascontiguousarray(data[:,1:])             # <<<<<<<<<<<<<<
+ * 
+ *     # black is 0, white is 1
+ */
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_ascontiguousarray); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_1 = __Pyx_PyObject_GetItem(__pyx_v_data, __pyx_tuple__5); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_3 = NULL;
+  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_2);
+    if (likely(__pyx_t_3)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+      __Pyx_INCREF(__pyx_t_3);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_2, function);
+    }
+  }
+  __pyx_t_4 = (__pyx_t_3) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_3, __pyx_t_1) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __Pyx_DECREF_SET(__pyx_v_data, __pyx_t_4);
+  __pyx_t_4 = 0;
+
+  /* "cnn/data.pyx":16
  * 
  *     # black is 0, white is 1
  *     data /= 255 # all values into [0,1] range             # <<<<<<<<<<<<<<
  * 
  *     if zero_mean:  # now in range [-1,1]
  */
-  __pyx_t_4 = __Pyx_PyNumber_InPlaceDivide(__pyx_v_data, __pyx_int_255); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 15, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyNumber_InPlaceDivide(__pyx_v_data, __pyx_int_255); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 16, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF_SET(__pyx_v_data, __pyx_t_4);
   __pyx_t_4 = 0;
 
-  /* "cnn/data.pyx":17
+  /* "cnn/data.pyx":18
  *     data /= 255 # all values into [0,1] range
  * 
  *     if zero_mean:  # now in range [-1,1]             # <<<<<<<<<<<<<<
  *         data *= 2
  *         data -= 1
  */
-  __pyx_t_5 = __Pyx_PyObject_IsTrue(__pyx_v_zero_mean); if (unlikely(__pyx_t_5 < 0)) __PYX_ERR(0, 17, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_IsTrue(__pyx_v_zero_mean); if (unlikely(__pyx_t_5 < 0)) __PYX_ERR(0, 18, __pyx_L1_error)
   if (__pyx_t_5) {
 
-    /* "cnn/data.pyx":18
+    /* "cnn/data.pyx":19
  * 
  *     if zero_mean:  # now in range [-1,1]
  *         data *= 2             # <<<<<<<<<<<<<<
  *         data -= 1
  * 
  */
-    __pyx_t_4 = PyNumber_InPlaceMultiply(__pyx_v_data, __pyx_int_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 18, __pyx_L1_error)
+    __pyx_t_4 = PyNumber_InPlaceMultiply(__pyx_v_data, __pyx_int_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 19, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF_SET(__pyx_v_data, __pyx_t_4);
     __pyx_t_4 = 0;
 
-    /* "cnn/data.pyx":19
+    /* "cnn/data.pyx":20
  *     if zero_mean:  # now in range [-1,1]
  *         data *= 2
  *         data -= 1             # <<<<<<<<<<<<<<
  * 
- *     data[:,0] = 1 # adds bias(=1) column
+ *     data.flags.writeable = False
  */
-    __pyx_t_4 = __Pyx_PyInt_SubtractObjC(__pyx_v_data, __pyx_int_1, 1, 1, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 19, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyInt_SubtractObjC(__pyx_v_data, __pyx_int_1, 1, 1, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 20, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF_SET(__pyx_v_data, __pyx_t_4);
     __pyx_t_4 = 0;
 
-    /* "cnn/data.pyx":17
+    /* "cnn/data.pyx":18
  *     data /= 255 # all values into [0,1] range
  * 
  *     if zero_mean:  # now in range [-1,1]             # <<<<<<<<<<<<<<
@@ -1499,23 +1549,38 @@ static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__p
  */
   }
 
-  /* "cnn/data.pyx":21
+  /* "cnn/data.pyx":22
  *         data -= 1
  * 
- *     data[:,0] = 1 # adds bias(=1) column             # <<<<<<<<<<<<<<
+ *     data.flags.writeable = False             # <<<<<<<<<<<<<<
+ *     targets.flags.writeable = False
+ * 
+ */
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_data, __pyx_n_s_flags); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 22, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  if (__Pyx_PyObject_SetAttrStr(__pyx_t_4, __pyx_n_s_writeable, Py_False) < 0) __PYX_ERR(0, 22, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+
+  /* "cnn/data.pyx":23
+ * 
+ *     data.flags.writeable = False
+ *     targets.flags.writeable = False             # <<<<<<<<<<<<<<
  * 
  *     return data, targets
  */
-  if (unlikely(PyObject_SetItem(__pyx_v_data, __pyx_tuple__3, __pyx_int_1) < 0)) __PYX_ERR(0, 21, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_targets, __pyx_n_s_flags); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 23, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  if (__Pyx_PyObject_SetAttrStr(__pyx_t_4, __pyx_n_s_writeable, Py_False) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-  /* "cnn/data.pyx":23
- *     data[:,0] = 1 # adds bias(=1) column
+  /* "cnn/data.pyx":25
+ *     targets.flags.writeable = False
  * 
  *     return data, targets             # <<<<<<<<<<<<<<
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 23, __pyx_L1_error)
+  __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 25, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_INCREF(__pyx_v_data);
   __Pyx_GIVEREF(__pyx_v_data);
@@ -1598,12 +1663,14 @@ static struct PyModuleDef __pyx_moduledef = {
 
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_s_, __pyx_k_, sizeof(__pyx_k_), 0, 0, 1, 0},
+  {&__pyx_n_s_ascontiguousarray, __pyx_k_ascontiguousarray, sizeof(__pyx_k_ascontiguousarray), 0, 0, 1, 1},
   {&__pyx_n_s_astype, __pyx_k_astype, sizeof(__pyx_k_astype), 0, 0, 1, 1},
   {&__pyx_n_s_cline_in_traceback, __pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 0, 1, 1},
   {&__pyx_n_s_cnn_data, __pyx_k_cnn_data, sizeof(__pyx_k_cnn_data), 0, 0, 1, 1},
   {&__pyx_n_s_data, __pyx_k_data, sizeof(__pyx_k_data), 0, 0, 1, 1},
   {&__pyx_n_s_delimiter, __pyx_k_delimiter, sizeof(__pyx_k_delimiter), 0, 0, 1, 1},
   {&__pyx_n_s_filename, __pyx_k_filename, sizeof(__pyx_k_filename), 0, 0, 1, 1},
+  {&__pyx_n_s_flags, __pyx_k_flags, sizeof(__pyx_k_flags), 0, 0, 1, 1},
   {&__pyx_n_s_genfromtxt, __pyx_k_genfromtxt, sizeof(__pyx_k_genfromtxt), 0, 0, 1, 1},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
   {&__pyx_n_s_intc, __pyx_k_intc, sizeof(__pyx_k_intc), 0, 0, 1, 1},
@@ -1618,6 +1685,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_s_src_cnn_data_pyx, __pyx_k_src_cnn_data_pyx, sizeof(__pyx_k_src_cnn_data_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_targets, __pyx_k_targets, sizeof(__pyx_k_targets), 0, 0, 1, 1},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
+  {&__pyx_n_s_writeable, __pyx_k_writeable, sizeof(__pyx_k_writeable), 0, 0, 1, 1},
   {&__pyx_n_s_zero_mean, __pyx_k_zero_mean, sizeof(__pyx_k_zero_mean), 0, 0, 1, 1},
   {0, 0, 0, 0, 0, 0, 0}
 };
@@ -1633,8 +1701,8 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *         np.random.shuffle(data)
  * 
  *     targets = data[:,0].astype(np.intc)             # <<<<<<<<<<<<<<
+ *     data = np.ascontiguousarray(data[:,1:])
  * 
- *     # black is 0, white is 1
  */
   __pyx_slice__2 = PySlice_New(Py_None, Py_None, Py_None); if (unlikely(!__pyx_slice__2)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_slice__2);
@@ -1643,6 +1711,20 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__3);
   __Pyx_GIVEREF(__pyx_tuple__3);
 
+  /* "cnn/data.pyx":13
+ * 
+ *     targets = data[:,0].astype(np.intc)
+ *     data = np.ascontiguousarray(data[:,1:])             # <<<<<<<<<<<<<<
+ * 
+ *     # black is 0, white is 1
+ */
+  __pyx_slice__4 = PySlice_New(__pyx_int_1, Py_None, Py_None); if (unlikely(!__pyx_slice__4)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_slice__4);
+  __Pyx_GIVEREF(__pyx_slice__4);
+  __pyx_tuple__5 = PyTuple_Pack(2, __pyx_slice__2, __pyx_slice__4); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__5);
+  __Pyx_GIVEREF(__pyx_tuple__5);
+
   /* "cnn/data.pyx":4
  * 
  * 
@@ -1650,10 +1732,10 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *     filename, max_rows=None, shuffle=True, zero_mean=False,
  * ):
  */
-  __pyx_tuple__4 = PyTuple_Pack(6, __pyx_n_s_filename, __pyx_n_s_max_rows, __pyx_n_s_shuffle, __pyx_n_s_zero_mean, __pyx_n_s_data, __pyx_n_s_targets); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 4, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__4);
-  __Pyx_GIVEREF(__pyx_tuple__4);
-  __pyx_codeobj__5 = (PyObject*)__Pyx_PyCode_New(4, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__4, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_src_cnn_data_pyx, __pyx_n_s_preprocess_data, 4, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__5)) __PYX_ERR(0, 4, __pyx_L1_error)
+  __pyx_tuple__6 = PyTuple_Pack(6, __pyx_n_s_filename, __pyx_n_s_max_rows, __pyx_n_s_shuffle, __pyx_n_s_zero_mean, __pyx_n_s_data, __pyx_n_s_targets); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(0, 4, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__6);
+  __Pyx_GIVEREF(__pyx_tuple__6);
+  __pyx_codeobj__7 = (PyObject*)__Pyx_PyCode_New(4, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__6, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_src_cnn_data_pyx, __pyx_n_s_preprocess_data, 4, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__7)) __PYX_ERR(0, 4, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -2726,6 +2808,20 @@ static PyObject* __Pyx_PyInt_SubtractObjC(PyObject *op1, PyObject *op2, CYTHON_U
             return PyFloat_FromDouble(result);
     }
     return (inplace ? PyNumber_InPlaceSubtract : PyNumber_Subtract)(op1, op2);
+}
+#endif
+
+/* PyObjectSetAttrStr */
+#if CYTHON_USE_TYPE_SLOTS
+static CYTHON_INLINE int __Pyx_PyObject_SetAttrStr(PyObject* obj, PyObject* attr_name, PyObject* value) {
+    PyTypeObject* tp = Py_TYPE(obj);
+    if (likely(tp->tp_setattro))
+        return tp->tp_setattro(obj, attr_name, value);
+#if PY_MAJOR_VERSION < 3
+    if (likely(tp->tp_setattr))
+        return tp->tp_setattr(obj, PyString_AS_STRING(attr_name), value);
+#endif
+    return PyObject_SetAttr(obj, attr_name, value);
 }
 #endif
 
