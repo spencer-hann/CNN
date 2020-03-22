@@ -7,22 +7,21 @@ from pathlib import Path
 def preprocess_data(
     filename, max_rows=None, shuffle=True, zero_mean=False,
 ):
-    print("loading from file...", end=' ', flush=True)
+    print(f"loading {filename}...", end=' ', flush=True)
     data = np.genfromtxt(filename, delimiter=',', max_rows=max_rows)
-    print("done.", flush=True)
+    print("done.", data.shape, flush=True)
 
-    if shuffle:
-        np.random.shuffle(data)
+    if shuffle: np.random.shuffle(data)
 
     targets = data[:,0].astype(np.intc)
     data = np.ascontiguousarray(data[:,1:])
 
     # black is 0, white is 1
-    data /= 255 # all values into [0,1] range
+    data /= data.max() # all values into [0,1] range
 
     if zero_mean:  # now in range [-1,1]
-        data *= 2
-        data -= 1
+        #data -= data.mean(axis=0)
+        data -= .5
 
     data.flags.writeable = False
     targets.flags.writeable = False

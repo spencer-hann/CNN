@@ -38,8 +38,6 @@ cdef class ReLULayer(Layer):
         return loss_grad * self.active_neurons
 
 
-cdef size_t conv_layer_count = 0
-
 cdef class ConvolutionalLayer(Layer):
     cdef readonly:
         Py_ssize_t n_filters
@@ -48,7 +46,8 @@ cdef class ConvolutionalLayer(Layer):
         np.ndarray filters
 
         np.ndarray last_input
-        size_t id
+        np.ndarray last_grad
+        double momentum
 
 
     def __init__(
@@ -56,23 +55,28 @@ cdef class ConvolutionalLayer(Layer):
         Py_ssize_t depth,
         Py_ssize_t n_filters,
         Py_ssize_t dim,
+        double momentum = 0.0,
     ):
-        global conv_layer_count
-        self.id = conv_layer_count
-        conv_layer_count += 1
-
         self.n_filters = n_filters
         self.depth = depth
         self.dim = dim
+
+        self.momentum = momentum
 
         assert dim % 2, "Conv dim must be odd"
 
         self.filters = np.random.randn(n_filters, depth, dim, dim)
         self.filters /= depth * dim**2  # normalize individual filters
 
+        self.last_grad = np.zeros(np_shape(self.filters))
+
     def __repr__(self):
-        return f"<{type(self).__name__}: " \
-            + f"({self.depth}, {self.n_filters}, {self.dim})>"
+        return (
+            f"<{type(self).__name__}: " \
+            + f"({self.depth}, {self.n_filters}, {self.dim})"
+            + f", momentum={self.momentum}"
+            + ">"
+        )
 
 
     cdef np.ndarray pad(self, np.ndarray image):
@@ -101,7 +105,7 @@ cdef class ConvolutionalLayer(Layer):
 
     def convolve(self, np.ndarray image, np.ndarray filters):
         cdef np.ndarray out, m
-        cdef Py_ssize_t xdim, ydim, i, j, p
+        cdef Py_ssize_t xdim, ydim, i, j, d
 
         nchannels = image.shape[0]
         xdim = image.shape[1]
@@ -109,38 +113,41 @@ cdef class ConvolutionalLayer(Layer):
         assert nchannels == self.depth
 
         out = np.zeros((self.n_filters, xdim, ydim))
-        p = self.dim // 2  # padding
+        d = self.dim
         image = self.pad(image)
 
-        for i in range(p, xdim + p):
-            for j in range(p, ydim + p):
+        for i in range(xdim - d + 1):  # (self.dim // 2)):
+            for j in range(ydim - d + 1):  # (self.dim // 2)):
                 for f in range(self.n_filters):
-                    m = filters[f] * image[:, i-p:i+p+1, j-p:j+p+1]
-                    out[f, i-p, j-p] = np.sum(m)
+                    m = filters[f] * image[:, i:i+d, j:j+d]
+                    out[f, i, j] = np.sum(m)
 
         return out
 
     def backprop(self, np.ndarray loss_grad, double lr):
         cdef np.ndarray grad_filters, grad_input, img
-        cdef Py_ssize_t p, xdim, ydim
+        cdef Py_ssize_t d, p, xdim, ydim
 
         grad_filters = np.zeros(np_shape(self.filters))
         grad_input = np.zeros(np_shape(self.last_input))
-        p = self.dim // 2
+        d = self.dim
+        p = d // 2
         xdim = self.last_input.shape[1]
         ydim = self.last_input.shape[2]
 
         img = self.pad(self.last_input)
 
-        for i in range(p, xdim - p - 1):
-            for j in range(p, ydim - p - 1):
+        for i in range(xdim - d + 1):
+            for j in range(ydim - d + 1):
                 for f in range(self.n_filters):
                     grad_filters[f] += \
-                        loss_grad[f, i-p, j-p] * img[:, i-p:i+p+1, j-p:j+p+1]
-                    grad_input[:, i-p:i+p+1, j-p:j+p+1] += \
-                            loss_grad[f, i-p, j-p] * self.filters[f]
+                        loss_grad[f, i, j] * img[:, i:i+d, j:j+d]
+                    grad_input[:, i:i+d, j:j+d] += \
+                            loss_grad[f, i, j] * self.filters[f]
 
-        self.filters += lr * grad_filters
+        self.last_grad += grad_filters
+        self.filters += lr * self.last_grad
+        self.last_grad *= self.momentum
 
         return grad_input
 
@@ -354,8 +361,7 @@ cdef class CNN:
 
         out, loss, correct = self._forward(image, label)
 
-        if correct:
-            return loss, correct
+        if correct: return loss, correct
 
         # cross entropy gradient
         grad = np.zeros(10)
@@ -384,7 +390,7 @@ cdef class CNN:
 
     def train_epochs(self, n, np.ndarray images, np.ndarray labels):
         for i in range(n):
-            #images, labels = parallel_shuffle(images, labels)
+            images, labels = parallel_shuffle(images, labels)
             loss, accuracy = self.train(images, labels)
             print(f"Epoch {i}/{n}: {loss:.2f} loss, {100*accuracy:.2f}% accurate")
 
@@ -413,8 +419,9 @@ cdef class CNN:
 
 
 cpdef tuple parallel_shuffle(np.ndarray a, np.ndarray b):
-    assert len(a) == len(b)
     cdef np.ndarray indices
+    assert len(a) == len(b)
+    print("shuffling...")
     indices = np.arange(len(a))
     np.random.shuffle(indices)
     return a[indices], b[indices]
