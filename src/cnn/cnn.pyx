@@ -27,6 +27,17 @@ cdef class Layer:
         raise NotImplementedError
 
 
+cdef class ReLULayer(Layer):
+    cdef np.ndarray active_neurons
+
+    def forward(self, np.ndarray tensor):
+        self.active_neurons = tensor > 0
+        return tensor * self.active_neurons
+
+    def backprop(self, np.ndarray loss_grad, lr=None):
+        return loss_grad * self.active_neurons
+
+
 cdef size_t conv_layer_count = 0
 
 cdef class ConvolutionalLayer(Layer):
@@ -38,7 +49,6 @@ cdef class ConvolutionalLayer(Layer):
 
         np.ndarray last_input
         size_t id
-        bint first_layer  # save some work by not finishing last gradient
 
 
     def __init__(
@@ -46,7 +56,6 @@ cdef class ConvolutionalLayer(Layer):
         Py_ssize_t depth,
         Py_ssize_t n_filters,
         Py_ssize_t dim,
-        bint first_layer = False,
     ):
         global conv_layer_count
         self.id = conv_layer_count
@@ -60,6 +69,10 @@ cdef class ConvolutionalLayer(Layer):
 
         self.filters = np.random.randn(n_filters, depth, dim, dim)
         self.filters /= depth * dim**2  # normalize individual filters
+
+    def __repr__(self):
+        return f"<{type(self).__name__}: " \
+            + f"({self.depth}, {self.n_filters}, {self.dim})>"
 
 
     cdef np.ndarray pad(self, np.ndarray image):
@@ -82,10 +95,8 @@ cdef class ConvolutionalLayer(Layer):
 
     def forward(self, np.ndarray image):
         cdef np.ndarray out
-        #print(f"conv{self.id} forward input: {np_shape(image)}")
         self.last_input = image
         out = self.convolve(image, self.filters)
-        #print(f"conv{self.id} forward output: {np_shape(out)}")
         return out
 
     def convolve(self, np.ndarray image, np.ndarray filters):
@@ -103,53 +114,39 @@ cdef class ConvolutionalLayer(Layer):
 
         for i in range(p, xdim + p):
             for j in range(p, ydim + p):
-                m = filters * image[:, i-p:i+p+1, j-p:j+p+1]
-                out[:, i-p, j-p] = np.sum(m, axis=(1,2,3))
+                for f in range(self.n_filters):
+                    m = filters[f] * image[:, i-p:i+p+1, j-p:j+p+1]
+                    out[f, i-p, j-p] = np.sum(m)
 
         return out
 
     def backprop(self, np.ndarray loss_grad, double lr):
-        cdef np.ndarray grad_filters, img
+        cdef np.ndarray grad_filters, grad_input, img
         cdef Py_ssize_t p, xdim, ydim
 
-        #print(f"conv{self.id} backward input: {np_shape(loss_grad)}")
-
         grad_filters = np.zeros(np_shape(self.filters))
+        grad_input = np.zeros(np_shape(self.last_input))
         p = self.dim // 2
         xdim = self.last_input.shape[1]
         ydim = self.last_input.shape[2]
 
         img = self.pad(self.last_input)
 
-        ## Loss gradient wrt filters
-
-        if 1:
-            print(
-                np_shape(self.filters),
-                np_shape(grad_filters),
-                np_shape(loss_grad),
-                np_shape(img))
-
         for i in range(p, xdim - p - 1):
             for j in range(p, ydim - p - 1):
                 for f in range(self.n_filters):
-                    grad_filters[f]
-                    #print(f, i-p, j-p, self.n_filters)
-                    loss_grad[f, i-p, j-p]
-                    img[:, i-p:i+p+1, j-p:j+p+1]
-
                     grad_filters[f] += \
                         loss_grad[f, i-p, j-p] * img[:, i-p:i+p+1, j-p:j+p+1]
+                    grad_input[:, i-p:i+p+1, j-p:j+p+1] += \
+                            loss_grad[f, i-p, j-p] * self.filters[f]
 
-        self.filters -= lr * grad_filters
+        self.filters += lr * grad_filters
 
-        if self.first_layer:
-            return None
+        return grad_input
 
-        ## Loss gradient wrt input
-        # grad of loss wrt filters * grad of filters wrt input
-        lgrad_input = self.convolve(self.last_input, grad_filters)
-        return lgrad_input
+
+cdef inline tuple ndargmax(np.ndarray a):
+    return np.unravel_index(a.argmax(), (<object>a).shape)
 
 
 cdef class MaxPoolingLayer(Layer):
@@ -160,6 +157,8 @@ cdef class MaxPoolingLayer(Layer):
     def __init__(self, Py_ssize_t dim):
         self.dim = dim
 
+    def __repr__(self):
+        return f"{type(self).__name__}: {self.dim}"
 
     def forward(self, np.ndarray image):
         cdef Py_ssize_t nchan, xdim, ydim, d, x, y, i, j
@@ -181,6 +180,30 @@ cdef class MaxPoolingLayer(Layer):
                 out[:,x,y] = np.max(image[:, i:i+d, j:j+d], axis=(1,2))
 
         return out
+
+    def backprop(self, np.ndarray loss_grad, lr=None):
+        cdef Py_ssize_t nchan, xdim, ydim, i, j, d
+        cdef tuple mxindex
+        cdef np.ndarray grad_input
+
+        nchan, xdim, ydim = img_shape(loss_grad)
+        d = self.dim
+        image = self.last_input
+        grad_input = np.zeros(np_shape(image))
+
+        for x in range(xdim):
+            i = x * d
+            for y in range(ydim):
+                j = y * d
+                for c in range(nchan):
+                    mxindex = ndargmax(image[c, i:i+d, j:j+d])
+                    grad_input[mxindex] = loss_grad[c, x, y]
+
+        return grad_input
+
+
+
+
 
     #def backprop(self, np.ndarray loss_grad):
     #    cdef Py_ssize_t nchan, xdim, ydim, d, x, y, i, j
@@ -221,6 +244,10 @@ cdef class DenseSoftmaxLayer(Layer):
 
         self.w = np.random.randn(insize, outsize) / insize
         self.b = np.random.randn(outsize) / outsize
+
+
+    def __repr__(self):
+        return f"{type(self).__name__}: ({self.insize}, {self.outsize})"
 
 
     def forward(self, np.ndarray image):
@@ -357,6 +384,7 @@ cdef class CNN:
 
     def train_epochs(self, n, np.ndarray images, np.ndarray labels):
         for i in range(n):
+            #images, labels = parallel_shuffle(images, labels)
             loss, accuracy = self.train(images, labels)
             print(f"Epoch {i}/{n}: {loss:.2f} loss, {100*accuracy:.2f}% accurate")
 
@@ -379,5 +407,15 @@ cdef class CNN:
             print(f"Test: {loss:.2f} loss, {100*correct:.2f}% accurate")
         return loss, correct
 
+    def __repr__(self):
+        layers = ", ".join((str(l) for l in self.layers))
+        return f"<{type(self).__name__}: lr={self.lr}, layers=({layers})>"
 
+
+cpdef tuple parallel_shuffle(np.ndarray a, np.ndarray b):
+    assert len(a) == len(b)
+    cdef np.ndarray indices
+    indices = np.arange(len(a))
+    np.random.shuffle(indices)
+    return a[indices], b[indices]
 

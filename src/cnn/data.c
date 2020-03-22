@@ -1310,7 +1310,7 @@ static PyObject *__pyx_pw_3cnn_4data_1preprocess_data(PyObject *__pyx_self, PyOb
  * def preprocess_data(
  *     filename, max_rows=None, shuffle=True, zero_mean=False,             # <<<<<<<<<<<<<<
  * ):
- *     print("loading from file...", end=' ')
+ *     print("loading from file...", end=' ', flush=True)
  */
     values[1] = ((PyObject *)Py_None);
     values[2] = ((PyObject *)Py_True);
@@ -1413,13 +1413,14 @@ static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__p
   /* "cnn/data.pyx":10
  *     filename, max_rows=None, shuffle=True, zero_mean=False,
  * ):
- *     print("loading from file...", end=' ')             # <<<<<<<<<<<<<<
+ *     print("loading from file...", end=' ', flush=True)             # <<<<<<<<<<<<<<
  *     data = np.genfromtxt(filename, delimiter=',', max_rows=max_rows)
  *     print("done.", flush=True)
  */
-  __pyx_t_1 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 10, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_end, __pyx_kp_u__2) < 0) __PYX_ERR(0, 10, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_flush, Py_True) < 0) __PYX_ERR(0, 10, __pyx_L1_error)
   __pyx_t_2 = __Pyx_PyObject_Call(__pyx_builtin_print, __pyx_tuple_, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 10, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
@@ -1427,7 +1428,7 @@ static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__p
 
   /* "cnn/data.pyx":11
  * ):
- *     print("loading from file...", end=' ')
+ *     print("loading from file...", end=' ', flush=True)
  *     data = np.genfromtxt(filename, delimiter=',', max_rows=max_rows)             # <<<<<<<<<<<<<<
  *     print("done.", flush=True)
  * 
@@ -1455,7 +1456,7 @@ static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__p
   __pyx_t_4 = 0;
 
   /* "cnn/data.pyx":12
- *     print("loading from file...", end=' ')
+ *     print("loading from file...", end=' ', flush=True)
  *     data = np.genfromtxt(filename, delimiter=',', max_rows=max_rows)
  *     print("done.", flush=True)             # <<<<<<<<<<<<<<
  * 
@@ -2042,7 +2043,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "cnn/data.pyx":10
  *     filename, max_rows=None, shuffle=True, zero_mean=False,
  * ):
- *     print("loading from file...", end=' ')             # <<<<<<<<<<<<<<
+ *     print("loading from file...", end=' ', flush=True)             # <<<<<<<<<<<<<<
  *     data = np.genfromtxt(filename, delimiter=',', max_rows=max_rows)
  *     print("done.", flush=True)
  */
@@ -2051,7 +2052,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple_);
 
   /* "cnn/data.pyx":12
- *     print("loading from file...", end=' ')
+ *     print("loading from file...", end=' ', flush=True)
  *     data = np.genfromtxt(filename, delimiter=',', max_rows=max_rows)
  *     print("done.", flush=True)             # <<<<<<<<<<<<<<
  * 

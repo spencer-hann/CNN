@@ -7,7 +7,7 @@ from pathlib import Path
 def preprocess_data(
     filename, max_rows=None, shuffle=True, zero_mean=False,
 ):
-    print("loading from file...", end=' ')
+    print("loading from file...", end=' ', flush=True)
     data = np.genfromtxt(filename, delimiter=',', max_rows=max_rows)
     print("done.", flush=True)
 
