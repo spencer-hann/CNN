@@ -6,9 +6,6 @@ cimport numpy as np
 from tqdm import tqdm
 
 
-DEF DEF_LEARNING_RATE = 0.02
-
-
 cdef inline np_shape(np.ndarray a):
     return (<object>a).shape
 
@@ -19,6 +16,9 @@ cdef inline (Py_ssize_t,Py_ssize_t,Py_ssize_t) img_shape(np.ndarray img):
 
 
 cdef class Layer:
+
+    def __repr__(self):
+        return '<' + type(self).__name__ + '>'
 
     def forward(self, *args, **kwargs):
         raise NotImplementedError
@@ -31,7 +31,7 @@ cdef class ReLULayer(Layer):
     cdef np.ndarray active_neurons
 
     def forward(self, np.ndarray tensor):
-        self.active_neurons = tensor > 0
+        self.active_neurons = (tensor > 0).astype(np.float)
         return tensor * self.active_neurons
 
     def backprop(self, np.ndarray loss_grad, lr=None):
@@ -78,6 +78,11 @@ cdef class ConvolutionalLayer(Layer):
             + ">"
         )
 
+    def peek_filters(self):
+        filters = np.around(self.filters, 2)
+        for f in range(self.n_filters):
+            print(f"filter {f}: ")
+            print(filters[f])
 
     cdef np.ndarray pad(self, np.ndarray image):
         cdef Py_ssize_t p, i, j
@@ -145,9 +150,9 @@ cdef class ConvolutionalLayer(Layer):
                     grad_input[:, i:i+d, j:j+d] += \
                             loss_grad[f, i, j] * self.filters[f]
 
+        self.last_grad *= self.momentum
         self.last_grad += grad_filters
         self.filters += lr * self.last_grad
-        self.last_grad *= self.momentum
 
         return grad_input
 
@@ -165,7 +170,7 @@ cdef class MaxPoolingLayer(Layer):
         self.dim = dim
 
     def __repr__(self):
-        return f"{type(self).__name__}: {self.dim}"
+        return f"<{type(self).__name__}: {self.dim}>"
 
     def forward(self, np.ndarray image):
         cdef Py_ssize_t nchan, xdim, ydim, d, x, y, i, j
@@ -209,31 +214,6 @@ cdef class MaxPoolingLayer(Layer):
         return grad_input
 
 
-
-
-
-    #def backprop(self, np.ndarray loss_grad):
-    #    cdef Py_ssize_t nchan, xdim, ydim, d, x, y, i, j
-    #    cdef np.ndarray out
-
-    #    nchan, xdim, ydim = img_shape(image)
-
-    #    d = self.dim
-    #    newx = xdim // d
-    #    newy = ydim // d
-    #    out = np.empty((nchan, newx, newy))
-
-    #    for x in range(newx):
-    #        i = x * d
-    #        for y in range(newy):
-    #            j = y * d
-    #            for z in range(nchan):
-    #                if self.last_input[z,x,y] == self.out[z,x,y]:
-    #                    out[:,x,y] = np.max(image[:, i:i+d, j:j+d], axis=(1,2))
-
-    #    return out
-
-
 cdef class DenseSoftmaxLayer(Layer):
     cdef readonly:
         np.ndarray w
@@ -254,7 +234,7 @@ cdef class DenseSoftmaxLayer(Layer):
 
 
     def __repr__(self):
-        return f"{type(self).__name__}: ({self.insize}, {self.outsize})"
+        return f"<{type(self).__name__}: ({self.insize}, {self.outsize})>"
 
 
     def forward(self, np.ndarray image):
@@ -263,7 +243,6 @@ cdef class DenseSoftmaxLayer(Layer):
 
         # fully-connected/matmul phase
         fc = np.dot(image, self.w)
-        #fc = image @ self.w
         fc += self.b
         self.last_fc = fc
 
@@ -304,7 +283,6 @@ cdef class DenseSoftmaxLayer(Layer):
         # loss gradients wrt input, biases, weights
         lgrad_input = ograd_input @ loss_grad
         lgrad_biases = ograd_biases * loss_grad
-        #lgrad_weights = ograd_weights[np.newaxis].T @ loss_grad[np.newaxis]
         lgrad_weights = ograd_weights[:,np.newaxis] @ loss_grad[np.newaxis]
 
         # update layer
@@ -319,17 +297,28 @@ cdef class CNN:
         np.ndarray out
         int size
         double lr
+        double lr_decay
 
 
     def __init__(
         self,
         layers,
-        double lr = DEF_LEARNING_RATE,
+        double lr = 0.01,
+        double lr_decay = 0.9,
     ):
         self.layers = np.array(layers)
         self.size = len(layers)
         self.lr = lr
+        self.lr_decay = lr_decay
 
+    def __repr__(self):
+        layers = ",\t\n".join((str(l) for l in self.layers))
+        return (
+            f"<{type(self).__name__}: "
+            + f"lr={self.lr}, "
+            + f"lr_decay={self.lr_decay}, "
+            + f"\nlayers=(\t\n{layers}\n)>"
+        )
 
     def forward(self, np.ndarray image, Py_ssize_t label = -1):
         return self._forward(image, label)
@@ -380,7 +369,9 @@ cdef class CNN:
             Py_ssize_t i
 
         assert len(images) == len(labels)
-        for i in tqdm(range(n)):
+        #print(end='', flush=True)  # flush before tqdm
+        #for i in tqdm(range(n)):
+        for i in range(n):
             img = images[i].reshape((28,28))[np.newaxis,...]
             l, c = self.learn(img, labels[i])
             loss += l
@@ -388,11 +379,23 @@ cdef class CNN:
 
         return loss / n, ncorrect / n
 
-    def train_epochs(self, n, np.ndarray images, np.ndarray labels):
+    def train_epochs(self, int n, np.ndarray images, np.ndarray labels):
+        cdef list lprog, aprog
+        lprog = []
+        aprog = []
         for i in range(n):
             images, labels = parallel_shuffle(images, labels)
             loss, accuracy = self.train(images, labels)
-            print(f"Epoch {i}/{n}: {loss:.2f} loss, {100*accuracy:.2f}% accurate")
+            print(
+                f"Epoch {i}/{n}: "
+                + f"{loss:.2f} loss, "
+                + f"{100*accuracy:.2f}% accurate, "
+                + f"lr={self.lr}, "
+            )
+            self.lr *= self.lr_decay
+            lprog.append(loss)
+            aprog.append(accuracy)
+        return lprog, aprog
 
     def test(self, np.ndarray images, np.ndarray labels, display = True):
         cdef:
@@ -402,7 +405,9 @@ cdef class CNN:
             Py_ssize_t i
 
         assert n == len(labels)
-        for i in tqdm(range(n)):
+        #print(end='', flush=True)  # flush before tqdm
+        #for i in tqdm(range(n)):
+        for i in range(n):
             img = images[i].reshape((28,28))[np.newaxis,...]
             _, l, c = self._forward(img, labels[i])
             loss += l
@@ -413,15 +418,32 @@ cdef class CNN:
             print(f"Test: {loss:.2f} loss, {100*correct:.2f}% accurate")
         return loss, correct
 
-    def __repr__(self):
-        layers = ", ".join((str(l) for l in self.layers))
-        return f"<{type(self).__name__}: lr={self.lr}, layers=({layers})>"
+    def train_test_cycle(
+        self,
+        int nepochs,
+        int ncycles,
+        tuple train_set,
+        tuple test_set,
+        int sample_size = 0,
+    ):
+        def sample(item, labels):
+            smpl = np.arange(len(labels))
+            smpl = np.random.choice(smpl, sample_size, replace=False)
+            return (item[smpl], labels[smpl])
+
+        if sample_size < 1:
+            sample = lambda a, b: (a, b)
+
+        for i in range(ncycles):
+            print(f"Training {i}/{ncycles}...")
+            self.train_epochs(nepochs, *sample(*train_set))
+            print(f"Testing {i}/{ncycles}...")
+            self.test(*test_set)
 
 
 cpdef tuple parallel_shuffle(np.ndarray a, np.ndarray b):
     cdef np.ndarray indices
     assert len(a) == len(b)
-    print("shuffling...")
     indices = np.arange(len(a))
     np.random.shuffle(indices)
     return a[indices], b[indices]

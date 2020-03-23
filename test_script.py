@@ -13,17 +13,10 @@ from cnn.cnn import (
 from matplotlib import pyplot as plt
 
 
-def train_cycle(cnn, nepochs):
-    print("Training...")
-    cnn.train_epochs(4, *train_set)
-    print("Testing...")
-    cnn.test(*test_set)
-
-
 zero_mean = True
 training_examples, training_targets = preprocess_data(
     "data/mnist_train.csv",
-    max_rows=1000,
+    max_rows=80000,
     zero_mean=zero_mean,
 )
 testing_examples, testing_targets = preprocess_data(
@@ -37,23 +30,22 @@ train_set = (training_examples, training_targets)
 test_set = (testing_examples, testing_targets)
 
 
-lr = 0.008
-mo = 0.1
 cnn = CNN(
     (
-        ConvolutionalLayer(1,3,3),
+        ConvolutionalLayer(1,16,3),
         MaxPoolingLayer(2),
-        #DenseSoftmaxLayer(14*14*8, 10),
-        ConvolutionalLayer(3,1,3),
+        #DenseSoftmaxLayer(14*14*4, 10),
         ReLULayer(),
-        DenseSoftmaxLayer(14*14, 10),
+        ConvolutionalLayer(16,32,3),
+        MaxPoolingLayer(2),
+        ReLULayer(),
+        DenseSoftmaxLayer(7*7*32, 10),
     ),
-    lr = lr,
-    #momentum = mo,
+    lr = 0.01,
+    lr_decay = 0.8,
 )
-print(f"learning rate:\t{lr}", flush=True)
-print(f"momentum:\t{mo}", flush=True)
 print(cnn)
-for _ in range(4):
-    train_cycle(cnn, 8)
+cnn.train_test_cycle(3, 2, train_set, test_set, sample_size=400)
+
+#cnn.layers[0].peek_filters()
 

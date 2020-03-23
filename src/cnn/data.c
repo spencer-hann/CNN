@@ -1073,14 +1073,6 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_CallNoArg(PyObject *func);
 #define __Pyx_PyObject_CallNoArg(func) __Pyx_PyObject_Call(func, __pyx_empty_tuple, NULL)
 #endif
 
-/* PyFloatBinop.proto */
-#if !CYTHON_COMPILING_IN_PYPY
-static PyObject* __Pyx_PyFloat_SubtractObjC(PyObject *op1, PyObject *op2, double floatval, int inplace, int zerodivision_check);
-#else
-#define __Pyx_PyFloat_SubtractObjC(op1, op2, floatval, inplace, zerodivision_check)\
-    (inplace ? PyNumber_InPlaceSubtract(op1, op2) : PyNumber_Subtract(op1, op2))
-#endif
-
 /* PyObjectSetAttrStr.proto */
 #if CYTHON_USE_TYPE_SLOTS
 #define __Pyx_PyObject_DelAttrStr(o,n) __Pyx_PyObject_SetAttrStr(o, n, NULL)
@@ -1211,11 +1203,13 @@ static const char __pyx_k_end[] = "end";
 static const char __pyx_k_max[] = "max";
 static const char __pyx_k_npy[] = ".npy";
 static const char __pyx_k_Path[] = "Path";
+static const char __pyx_k_axis[] = "axis";
 static const char __pyx_k_data[] = "data";
 static const char __pyx_k_done[] = "done.";
 static const char __pyx_k_intc[] = "intc";
 static const char __pyx_k_load[] = "load";
 static const char __pyx_k_main[] = "__main__";
+static const char __pyx_k_mean[] = "mean";
 static const char __pyx_k_name[] = "name";
 static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_flags[] = "flags";
@@ -1251,6 +1245,7 @@ static PyObject *__pyx_kp_u__2;
 static PyObject *__pyx_kp_u__3;
 static PyObject *__pyx_n_s_ascontiguousarray;
 static PyObject *__pyx_n_s_astype;
+static PyObject *__pyx_n_s_axis;
 static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_cnn_data;
 static PyObject *__pyx_n_s_csv;
@@ -1274,6 +1269,7 @@ static PyObject *__pyx_kp_u_loading;
 static PyObject *__pyx_n_s_main;
 static PyObject *__pyx_n_s_max;
 static PyObject *__pyx_n_s_max_rows;
+static PyObject *__pyx_n_s_mean;
 static PyObject *__pyx_n_s_name;
 static PyObject *__pyx_n_s_name_2;
 static PyObject *__pyx_n_s_np;
@@ -1293,7 +1289,6 @@ static PyObject *__pyx_n_s_writeable;
 static PyObject *__pyx_n_s_zero_mean;
 static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_filename, PyObject *__pyx_v_max_rows, PyObject *__pyx_v_shuffle, PyObject *__pyx_v_zero_mean); /* proto */
 static PyObject *__pyx_pf_3cnn_4data_2_load_data(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_name, CYTHON_UNUSED PyObject *__pyx_v_csv); /* proto */
-static PyObject *__pyx_float__5;
 static PyObject *__pyx_int_0;
 static PyObject *__pyx_int_1;
 static PyObject *__pyx_slice__4;
@@ -1673,44 +1668,54 @@ static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__p
  *     data /= data.max() # all values into [0,1] range
  * 
  *     if zero_mean:  # now in range [-1,1]             # <<<<<<<<<<<<<<
- *         #data -= data.mean(axis=0)
- *         data -= .5
+ *         data -= data.mean(axis=0)
+ *         #data -= .5
  */
   __pyx_t_7 = __Pyx_PyObject_IsTrue(__pyx_v_zero_mean); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 22, __pyx_L1_error)
   if (__pyx_t_7) {
 
-    /* "cnn/data.pyx":24
- *     if zero_mean:  # now in range [-1,1]
- *         #data -= data.mean(axis=0)
- *         data -= .5             # <<<<<<<<<<<<<<
+    /* "cnn/data.pyx":23
  * 
- *     data.flags.writeable = False
+ *     if zero_mean:  # now in range [-1,1]
+ *         data -= data.mean(axis=0)             # <<<<<<<<<<<<<<
+ *         #data -= .5
+ * 
  */
-    __pyx_t_4 = __Pyx_PyFloat_SubtractObjC(__pyx_v_data, __pyx_float__5, .5, 1, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 24, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_data, __pyx_n_s_mean); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 23, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __Pyx_DECREF_SET(__pyx_v_data, __pyx_t_4);
-    __pyx_t_4 = 0;
+    __pyx_t_5 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 23, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
+    if (PyDict_SetItem(__pyx_t_5, __pyx_n_s_axis, __pyx_int_0) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_empty_tuple, __pyx_t_5); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_1);
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+    __pyx_t_5 = PyNumber_InPlaceSubtract(__pyx_v_data, __pyx_t_1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 23, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __Pyx_DECREF_SET(__pyx_v_data, __pyx_t_5);
+    __pyx_t_5 = 0;
 
     /* "cnn/data.pyx":22
  *     data /= data.max() # all values into [0,1] range
  * 
  *     if zero_mean:  # now in range [-1,1]             # <<<<<<<<<<<<<<
- *         #data -= data.mean(axis=0)
- *         data -= .5
+ *         data -= data.mean(axis=0)
+ *         #data -= .5
  */
   }
 
   /* "cnn/data.pyx":26
- *         data -= .5
+ *         #data -= .5
  * 
  *     data.flags.writeable = False             # <<<<<<<<<<<<<<
  *     targets.flags.writeable = False
  * 
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_data, __pyx_n_s_flags); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 26, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  if (__Pyx_PyObject_SetAttrStr(__pyx_t_4, __pyx_n_s_writeable, Py_False) < 0) __PYX_ERR(0, 26, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_data, __pyx_n_s_flags); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 26, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  if (__Pyx_PyObject_SetAttrStr(__pyx_t_5, __pyx_n_s_writeable, Py_False) < 0) __PYX_ERR(0, 26, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
   /* "cnn/data.pyx":27
  * 
@@ -1719,10 +1724,10 @@ static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__p
  * 
  *     return data, targets
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_targets, __pyx_n_s_flags); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 27, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  if (__Pyx_PyObject_SetAttrStr(__pyx_t_4, __pyx_n_s_writeable, Py_False) < 0) __PYX_ERR(0, 27, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_targets, __pyx_n_s_flags); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 27, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  if (__Pyx_PyObject_SetAttrStr(__pyx_t_5, __pyx_n_s_writeable, Py_False) < 0) __PYX_ERR(0, 27, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
   /* "cnn/data.pyx":29
  *     targets.flags.writeable = False
@@ -1732,16 +1737,16 @@ static PyObject *__pyx_pf_3cnn_4data_preprocess_data(CYTHON_UNUSED PyObject *__p
  * def _load_data(str name, str csv):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 29, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_5 = PyTuple_New(2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 29, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
   __Pyx_INCREF(__pyx_v_data);
   __Pyx_GIVEREF(__pyx_v_data);
-  PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_v_data);
+  PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_v_data);
   __Pyx_INCREF(__pyx_v_targets);
   __Pyx_GIVEREF(__pyx_v_targets);
-  PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_v_targets);
-  __pyx_r = __pyx_t_4;
-  __pyx_t_4 = 0;
+  PyTuple_SET_ITEM(__pyx_t_5, 1, __pyx_v_targets);
+  __pyx_r = __pyx_t_5;
+  __pyx_t_5 = 0;
   goto __pyx_L0;
 
   /* "cnn/data.pyx":7
@@ -2045,6 +2050,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_u__3, __pyx_k__3, sizeof(__pyx_k__3), 0, 1, 0, 0},
   {&__pyx_n_s_ascontiguousarray, __pyx_k_ascontiguousarray, sizeof(__pyx_k_ascontiguousarray), 0, 0, 1, 1},
   {&__pyx_n_s_astype, __pyx_k_astype, sizeof(__pyx_k_astype), 0, 0, 1, 1},
+  {&__pyx_n_s_axis, __pyx_k_axis, sizeof(__pyx_k_axis), 0, 0, 1, 1},
   {&__pyx_n_s_cline_in_traceback, __pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 0, 1, 1},
   {&__pyx_n_s_cnn_data, __pyx_k_cnn_data, sizeof(__pyx_k_cnn_data), 0, 0, 1, 1},
   {&__pyx_n_s_csv, __pyx_k_csv, sizeof(__pyx_k_csv), 0, 0, 1, 1},
@@ -2068,6 +2074,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
   {&__pyx_n_s_max, __pyx_k_max, sizeof(__pyx_k_max), 0, 0, 1, 1},
   {&__pyx_n_s_max_rows, __pyx_k_max_rows, sizeof(__pyx_k_max_rows), 0, 0, 1, 1},
+  {&__pyx_n_s_mean, __pyx_k_mean, sizeof(__pyx_k_mean), 0, 0, 1, 1},
   {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
   {&__pyx_n_s_name_2, __pyx_k_name_2, sizeof(__pyx_k_name_2), 0, 0, 1, 1},
   {&__pyx_n_s_np, __pyx_k_np, sizeof(__pyx_k_np), 0, 0, 1, 1},
@@ -2158,7 +2165,6 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 
 static CYTHON_SMALL_CODE int __Pyx_InitGlobals(void) {
   if (__Pyx_InitStrings(__pyx_string_tab) < 0) __PYX_ERR(0, 1, __pyx_L1_error);
-  __pyx_float__5 = PyFloat_FromDouble(.5); if (unlikely(!__pyx_float__5)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_0 = PyInt_FromLong(0); if (unlikely(!__pyx_int_0)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   return 0;
@@ -3219,85 +3225,8 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_CallNoArg(PyObject *func) {
 }
 #endif
 
-/* PyFloatBinop */
-#if !CYTHON_COMPILING_IN_PYPY
-static PyObject* __Pyx_PyFloat_SubtractObjC(PyObject *op1, PyObject *op2, double floatval, int inplace, int zerodivision_check) {
-    const double b = floatval;
-    double a, result;
-    (void)inplace;
-    (void)zerodivision_check;
-    if (likely(PyFloat_CheckExact(op1))) {
-        a = PyFloat_AS_DOUBLE(op1);
-        
-    } else
-    #if PY_MAJOR_VERSION < 3
-    if (likely(PyInt_CheckExact(op1))) {
-        a = (double) PyInt_AS_LONG(op1);
-        
-    } else
-    #endif
-    if (likely(PyLong_CheckExact(op1))) {
-        #if CYTHON_USE_PYLONG_INTERNALS
-        const digit* digits = ((PyLongObject*)op1)->ob_digit;
-        const Py_ssize_t size = Py_SIZE(op1);
-        switch (size) {
-            case  0: a = 0.0; break;
-            case -1: a = -(double) digits[0]; break;
-            case  1: a = (double) digits[0]; break;
-            case -2:
-            case 2:
-                if (8 * sizeof(unsigned long) > 2 * PyLong_SHIFT && ((8 * sizeof(unsigned long) < 53) || (1 * PyLong_SHIFT < 53))) {
-                    a = (double) (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
-                    if ((8 * sizeof(unsigned long) < 53) || (2 * PyLong_SHIFT < 53) || (a < (double) ((PY_LONG_LONG)1 << 53))) {
-                        if (size == -2)
-                            a = -a;
-                        break;
-                    }
-                }
-                CYTHON_FALLTHROUGH;
-            case -3:
-            case 3:
-                if (8 * sizeof(unsigned long) > 3 * PyLong_SHIFT && ((8 * sizeof(unsigned long) < 53) || (2 * PyLong_SHIFT < 53))) {
-                    a = (double) (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
-                    if ((8 * sizeof(unsigned long) < 53) || (3 * PyLong_SHIFT < 53) || (a < (double) ((PY_LONG_LONG)1 << 53))) {
-                        if (size == -3)
-                            a = -a;
-                        break;
-                    }
-                }
-                CYTHON_FALLTHROUGH;
-            case -4:
-            case 4:
-                if (8 * sizeof(unsigned long) > 4 * PyLong_SHIFT && ((8 * sizeof(unsigned long) < 53) || (3 * PyLong_SHIFT < 53))) {
-                    a = (double) (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0]));
-                    if ((8 * sizeof(unsigned long) < 53) || (4 * PyLong_SHIFT < 53) || (a < (double) ((PY_LONG_LONG)1 << 53))) {
-                        if (size == -4)
-                            a = -a;
-                        break;
-                    }
-                }
-                CYTHON_FALLTHROUGH;
-            default:
-        #else
-        {
-        #endif
-            a = PyLong_AsDouble(op1);
-            if (unlikely(a == -1.0 && PyErr_Occurred())) return NULL;
-            
-        }
-    } else {
-        return (inplace ? PyNumber_InPlaceSubtract : PyNumber_Subtract)(op1, op2);
-    }
-        
-        PyFPE_START_PROTECT("subtract", return NULL)
-        result = a - b;
-        PyFPE_END_PROTECT(result)
-        return PyFloat_FromDouble(result);
-}
-#endif
-
 /* PyObjectSetAttrStr */
-  #if CYTHON_USE_TYPE_SLOTS
+#if CYTHON_USE_TYPE_SLOTS
 static CYTHON_INLINE int __Pyx_PyObject_SetAttrStr(PyObject* obj, PyObject* attr_name, PyObject* value) {
     PyTypeObject* tp = Py_TYPE(obj);
     if (likely(tp->tp_setattro))
@@ -3311,7 +3240,7 @@ static CYTHON_INLINE int __Pyx_PyObject_SetAttrStr(PyObject* obj, PyObject* attr
 #endif
 
 /* ArgTypeTest */
-  static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact)
+static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact)
 {
     if (unlikely(!type)) {
         PyErr_SetString(PyExc_SystemError, "Missing type object");
@@ -3332,7 +3261,7 @@ static CYTHON_INLINE int __Pyx_PyObject_SetAttrStr(PyObject* obj, PyObject* attr
 }
 
 /* Import */
-  static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level) {
+static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level) {
     PyObject *empty_list = 0;
     PyObject *module = 0;
     PyObject *global_dict = 0;
@@ -3397,7 +3326,7 @@ bad:
 }
 
 /* ImportFrom */
-  static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name) {
+static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name) {
     PyObject* value = __Pyx_PyObject_GetAttrStr(module, name);
     if (unlikely(!value) && PyErr_ExceptionMatches(PyExc_AttributeError)) {
         PyErr_Format(PyExc_ImportError,
@@ -3411,7 +3340,7 @@ bad:
 }
 
 /* PyErrFetchRestore */
-  #if CYTHON_FAST_THREAD_STATE
+#if CYTHON_FAST_THREAD_STATE
 static CYTHON_INLINE void __Pyx_ErrRestoreInState(PyThreadState *tstate, PyObject *type, PyObject *value, PyObject *tb) {
     PyObject *tmp_type, *tmp_value, *tmp_tb;
     tmp_type = tstate->curexc_type;
@@ -3435,7 +3364,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
 #endif
 
 /* CLineInTraceback */
-  #ifndef CYTHON_CLINE_IN_TRACEBACK
+#ifndef CYTHON_CLINE_IN_TRACEBACK
 static int __Pyx_CLineForTraceback(PyThreadState *tstate, int c_line) {
     PyObject *use_cline;
     PyObject *ptype, *pvalue, *ptraceback;
@@ -3477,7 +3406,7 @@ static int __Pyx_CLineForTraceback(PyThreadState *tstate, int c_line) {
 #endif
 
 /* CodeObjectCache */
-  static int __pyx_bisect_code_objects(__Pyx_CodeObjectCacheEntry* entries, int count, int code_line) {
+static int __pyx_bisect_code_objects(__Pyx_CodeObjectCacheEntry* entries, int count, int code_line) {
     int start = 0, mid = 0, end = count - 1;
     if (end >= 0 && code_line > entries[end].code_line) {
         return count;
@@ -3557,7 +3486,7 @@ static void __pyx_insert_code_object(int code_line, PyCodeObject* code_object) {
 }
 
 /* AddTraceback */
-  #include "compile.h"
+#include "compile.h"
 #include "frameobject.h"
 #include "traceback.h"
 static PyCodeObject* __Pyx_CreateCodeObjectForTraceback(
@@ -3642,7 +3571,7 @@ bad:
 }
 
 /* CIntToPy */
-  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
     const long neg_one = (long) ((long) 0 - (long) 1), const_zero = (long) 0;
     const int is_unsigned = neg_one > const_zero;
     if (is_unsigned) {
@@ -3673,7 +3602,7 @@ bad:
 }
 
 /* CIntFromPyVerify */
-  #define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)\
+#define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)\
     __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 0)
 #define __PYX_VERIFY_RETURN_INT_EXC(target_type, func_type, func_value)\
     __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 1)
@@ -3695,7 +3624,7 @@ bad:
     }
 
 /* CIntFromPy */
-  static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *x) {
+static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *x) {
     const long neg_one = (long) ((long) 0 - (long) 1), const_zero = (long) 0;
     const int is_unsigned = neg_one > const_zero;
 #if PY_MAJOR_VERSION < 3
@@ -3884,7 +3813,7 @@ raise_neg_overflow:
 }
 
 /* CIntFromPy */
-  static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *x) {
+static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *x) {
     const int neg_one = (int) ((int) 0 - (int) 1), const_zero = (int) 0;
     const int is_unsigned = neg_one > const_zero;
 #if PY_MAJOR_VERSION < 3
@@ -4073,7 +4002,7 @@ raise_neg_overflow:
 }
 
 /* FastTypeChecks */
-  #if CYTHON_COMPILING_IN_CPYTHON
+#if CYTHON_COMPILING_IN_CPYTHON
 static int __Pyx_InBases(PyTypeObject *a, PyTypeObject *b) {
     while (a) {
         a = a->tp_base;
@@ -4173,7 +4102,7 @@ static CYTHON_INLINE int __Pyx_PyErr_GivenExceptionMatches2(PyObject *err, PyObj
 #endif
 
 /* CheckBinaryVersion */
-  static int __Pyx_check_binary_version(void) {
+static int __Pyx_check_binary_version(void) {
     char ctversion[4], rtversion[4];
     PyOS_snprintf(ctversion, 4, "%d.%d", PY_MAJOR_VERSION, PY_MINOR_VERSION);
     PyOS_snprintf(rtversion, 4, "%s", Py_GetVersion());
@@ -4189,7 +4118,7 @@ static CYTHON_INLINE int __Pyx_PyErr_GivenExceptionMatches2(PyObject *err, PyObj
 }
 
 /* InitStrings */
-  static int __Pyx_InitStrings(__Pyx_StringTabEntry *t) {
+static int __Pyx_InitStrings(__Pyx_StringTabEntry *t) {
     while (t->p) {
         #if PY_MAJOR_VERSION < 3
         if (t->is_unicode) {

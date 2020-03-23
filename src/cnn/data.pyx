@@ -20,8 +20,8 @@ def preprocess_data(
     data /= data.max() # all values into [0,1] range
 
     if zero_mean:  # now in range [-1,1]
-        #data -= data.mean(axis=0)
-        data -= .5
+        data -= data.mean(axis=0)
+        #data -= .5
 
     data.flags.writeable = False
     targets.flags.writeable = False
